@@ -6,6 +6,10 @@ import os
 import io
 import shutil
 from pygame import mixer
+from mutagen.mp3 import MP3
+from mutagen.flac import FLAC
+from mutagen.wave import WAVE
+import mutagen
 
 # Initialize mixer for music playback
 mixer.init()
@@ -642,6 +646,62 @@ def download_song(song_id):
         return False
 
 def handle_upload_song():
+    """Handle the upload song process"""
+    # Ask user to select an audio file
+    file_path = filedialog.askopenfilename(
+        title="Select a song file",
+        filetypes=[("Audio Files", "*.mp3 *.wav *.flac"), ("All files", "*.*")]
+    )
+    
+    if not file_path:  # User cancelled
+        return
+    
+    # Get song title from file name
+    default_title = os.path.splitext(os.path.basename(file_path))[0]
+    
+    # Ask for song title
+    title = simpledialog.askstring("Song Title", "Enter song title:", initialvalue=default_title)
+    if not title:  # User cancelled
+        return
+    
+    # Get artist from user
+    artists = get_artists()
+    if not artists:
+        artist_name = simpledialog.askstring("New Artist", "Enter artist name:")
+        if not artist_name:  # User cancelled
+            return
+            
+        # Add new artist to database
+        connection = connect_db()
+        if not connection:
+            return
+        
+        try:
+            cursor = connection.cursor()
+            cursor.execute("INSERT INTO Artists (name) VALUES (%s)", (artist_name,))
+            connection.commit()
+            artist_id = cursor.lastrowid
+            cursor.close()
+            connection.close()
+        except Exception as e:
+            messagebox.showerror("Error", f"Could not add artist: {e}")
+            return
+    else:
+        # Let user select artist
+        artist_id = None
+        # [Your existing artist selection code]
+        
+    # Get genre from user
+    genres = get_genres()
+    genre_id = None
+    # [Your existing genre selection code]
+    
+    # Upload the song with proper parameters
+    song_id = upload_song(file_path, title, artist_id, genre_id)
+    
+    if song_id:
+        # Refresh the song list
+        refresh_song_list()
     """Handle the upload song process"""
     # Ask user to select an audio file
     file_path = filedialog.askopenfilename(
